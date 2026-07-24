@@ -38,7 +38,7 @@ import {
 import {
   cn,
   fteGap,
-  formatDate,
+  formatDeadline,
   isOverdue,
   memberById,
   priorityRank,
@@ -142,9 +142,13 @@ export default function ProjectsPage() {
         case "risk":
           cmp = riskRank(a.riskLevel) - riskRank(b.riskLevel);
           break;
-        case "endDate":
-          cmp = +new Date(a.endDate) - +new Date(b.endDate);
+        case "endDate": {
+          // Ongoing projects (no end date) sort to the end.
+          const av = a.endDate ? +new Date(a.endDate) : Infinity;
+          const bv = b.endDate ? +new Date(b.endDate) : Infinity;
+          cmp = av - bv;
           break;
+        }
       }
       return cmp * dir;
     });
@@ -390,7 +394,7 @@ export default function ProjectsPage() {
                             : "text-muted",
                         )}
                       >
-                        {formatDate(p.endDate)}
+                        {formatDeadline(p.endDate)}
                       </span>
                     </Td>
                   </Tr>

@@ -36,6 +36,17 @@ export function projectEditHref(id: string): string {
   return `/projects/edit?id=${encodeURIComponent(id)}`;
 }
 
+/** A project with no (or invalid) end date is treated as ongoing. */
+export function isOngoingDate(iso: string | null | undefined): boolean {
+  if (!iso) return true;
+  return Number.isNaN(new Date(iso).getTime());
+}
+
+/** Format a project deadline, showing "Ongoing" when there is no end date. */
+export function formatDeadline(iso: string | null | undefined): string {
+  return isOngoingDate(iso) ? "Ongoing" : formatDate(iso);
+}
+
 /** Format an ISO date as e.g. "Jul 24, 2026". */
 export function formatDate(iso: string | null | undefined): string {
   if (!iso) return "—";

@@ -12,6 +12,8 @@ export interface ProjectFormValues {
   teamMemberIds: string[];
   startDate: string;
   endDate: string;
+  /** When true the project has no fixed end date (endDate is stored empty). */
+  ongoing: boolean;
   status: Project["status"];
   stage: Project["stage"];
   priority: Project["priority"];
@@ -58,6 +60,7 @@ export function emptyForm(defaultOwnerId: string): ProjectFormValues {
     teamMemberIds: [],
     startDate: toDateInput(nowIso()),
     endDate: "",
+    ongoing: false,
     status: "Planning",
     stage: "Intake",
     priority: "Medium",
@@ -88,6 +91,7 @@ export function projectToForm(p: Project): ProjectFormValues {
     teamMemberIds: [...p.teamMemberIds],
     startDate: toDateInput(p.startDate),
     endDate: toDateInput(p.endDate),
+    ongoing: !p.endDate,
     status: p.status,
     stage: p.stage,
     priority: p.priority,
@@ -113,9 +117,11 @@ export function validateForm(v: ProjectFormValues): ProjectFormErrors {
   if (!v.code.trim()) errors.code = "Project code is required.";
   if (!v.ownerId) errors.ownerId = "Please assign a project owner.";
   if (!v.startDate) errors.startDate = "Start date is required.";
-  if (!v.endDate) errors.endDate = "End date is required.";
-  if (v.startDate && v.endDate && v.endDate < v.startDate) {
-    errors.endDate = "End date must be after the start date.";
+  if (!v.ongoing) {
+    if (!v.endDate) errors.endDate = "End date is required (or mark as ongoing).";
+    else if (v.startDate && v.endDate < v.startDate) {
+      errors.endDate = "End date must be after the start date.";
+    }
   }
   const required = Number(v.requiredFTE);
   if (v.requiredFTE === "" || Number.isNaN(required) || required < 0) {
@@ -151,7 +157,7 @@ export function formToProject(
     ownerId: v.ownerId,
     teamMemberIds: v.teamMemberIds,
     startDate: fromDateInput(v.startDate),
-    endDate: fromDateInput(v.endDate),
+    endDate: v.ongoing ? "" : fromDateInput(v.endDate),
     status: v.status,
     stage: v.stage,
     priority: v.priority,
@@ -169,7 +175,9 @@ export function formToProject(
     nextActionOwnerId: v.nextActionOwnerId || v.ownerId,
     nextActionDueDate: v.nextActionDueDate
       ? fromDateInput(v.nextActionDueDate)
-      : fromDateInput(v.endDate),
+      : v.ongoing
+        ? ""
+        : fromDateInput(v.endDate),
     milestones: base?.milestones ?? [],
     createdAt: base?.createdAt ?? now,
     updatedAt: now,

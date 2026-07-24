@@ -7,7 +7,14 @@ import { StatusBadge, RiskBadge, PriorityBadge } from "@/components/ui/Badge";
 import { Progress } from "@/components/ui/Progress";
 import { AvatarStack, MemberAvatar } from "@/components/ui/Avatar";
 import type { Project, TeamMember } from "@/types";
-import { cn, fteGap, formatDate, isOverdue, memberById, projectHref } from "@/lib/utils";
+import {
+  cn,
+  fteGap,
+  formatDeadline,
+  isOverdue,
+  memberById,
+  projectHref,
+} from "@/lib/utils";
 
 export function ProjectCard({
   project,
@@ -104,7 +111,7 @@ export function ProjectCard({
             )}
           >
             <CalendarDays className="h-3.5 w-3.5" />
-            {formatDate(project.endDate)}
+            {formatDeadline(project.endDate)}
           </div>
         </div>
       </Card>

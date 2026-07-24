@@ -241,14 +241,30 @@ export function ProjectForm({ existing }: { existing?: Project }) {
                   {...invalidProps("startDate")}
                 />
               </Field>
-              <Field label="End Date" htmlFor="endDate" required error={errors.endDate}>
+              <Field
+                label="End Date"
+                htmlFor="endDate"
+                required={!values.ongoing}
+                error={errors.endDate}
+              >
                 <Input
                   id="endDate"
                   type="date"
-                  value={values.endDate}
+                  value={values.ongoing ? "" : values.endDate}
                   onChange={(e) => set("endDate", e.target.value)}
+                  disabled={values.ongoing}
+                  placeholder={values.ongoing ? "Ongoing" : undefined}
                   {...invalidProps("endDate")}
                 />
+                <label className="mt-2 inline-flex cursor-pointer items-center gap-2 text-sm text-fg">
+                  <input
+                    type="checkbox"
+                    checked={values.ongoing}
+                    onChange={(e) => set("ongoing", e.target.checked)}
+                    className="h-4 w-4 rounded border-border-strong text-brand accent-[rgb(var(--brand))] focus:ring-brand/40"
+                  />
+                  Ongoing — no fixed end date
+                </label>
               </Field>
               <Field label="Stage" htmlFor="stage">
                 <Select

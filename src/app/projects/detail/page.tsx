@@ -53,6 +53,7 @@ import {
   cn,
   fteGap,
   formatDate,
+  formatDeadline,
   formatDateTime,
   isOverdue,
   memberById,
@@ -556,7 +557,7 @@ function OverviewTab({
             <div className="flex justify-between">
               <dt className="text-muted">Target end</dt>
               <dd className="font-medium text-fg">
-                {formatDate(project.endDate)}
+                {formatDeadline(project.endDate)}
               </dd>
             </div>
           </dl>
@@ -884,7 +885,9 @@ function TimelineTab({ project }: { project: import("@/types").Project }) {
               >
                 {e.label}
               </p>
-              <span className="text-xs text-muted">{formatDate(e.date)}</span>
+              <span className="text-xs text-muted">
+                {formatDeadline(e.date)}
+              </span>
             </div>
           </li>
         ))}
