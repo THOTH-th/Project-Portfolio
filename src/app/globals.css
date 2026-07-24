@@ -1,0 +1,159 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+  THOTH design system — semantic color tokens.
+  Values are space-separated RGB channels so Tailwind's <alpha-value> works.
+*/
+:root {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+:root,
+[data-theme="light"] {
+  --bg: 246 248 251; /* #f6f8fb */
+  --surface: 255 255 255;
+  --surface-2: 248 250 252;
+  --elevated: 255 255 255;
+  --border: 226 232 240; /* slate-200 */
+  --border-strong: 203 213 225; /* slate-300 */
+  --fg: 15 23 42; /* slate-900 */
+  --muted: 100 116 139; /* slate-500 */
+  --faint: 148 163 184; /* slate-400 */
+
+  --brand: 37 99 235; /* blue-600 */
+  --brand-fg: 255 255 255;
+  --brand-soft: 219 234 254; /* blue-100 */
+  --accent: 124 58 237; /* violet-600 */
+
+  --sidebar: 10 18 48; /* deep navy */
+  --sidebar-fg: 226 232 240;
+  --sidebar-muted: 148 163 184;
+  --sidebar-active: 37 99 235;
+  --sidebar-hover: 30 41 76;
+
+  --success: 22 163 74; /* green-600 */
+  --warning: 217 119 6; /* amber-600 */
+  --danger: 220 38 38; /* red-600 */
+  --info: 8 145 178; /* cyan-600 */
+}
+
+[data-theme="dark"] {
+  --bg: 8 12 28;
+  --surface: 17 24 45;
+  --surface-2: 22 30 54;
+  --elevated: 24 33 58;
+  --border: 39 51 84;
+  --border-strong: 55 68 105;
+  --fg: 226 232 240;
+  --muted: 148 163 184;
+  --faint: 100 116 139;
+
+  --brand: 59 130 246; /* blue-500 */
+  --brand-fg: 255 255 255;
+  --brand-soft: 30 58 95;
+  --accent: 139 92 246; /* violet-500 */
+
+  --sidebar: 6 10 24;
+  --sidebar-fg: 226 232 240;
+  --sidebar-muted: 148 163 184;
+  --sidebar-active: 59 130 246;
+  --sidebar-hover: 20 28 52;
+
+  --success: 34 197 94;
+  --warning: 245 158 11;
+  --danger: 248 113 113;
+  --info: 34 211 238;
+}
+
+* {
+  border-color: rgb(var(--border));
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: rgb(var(--bg));
+  color: rgb(var(--fg));
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgb(var(--border-strong));
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgb(var(--faint));
+  background-clip: padding-box;
+}
+
+/* Focus ring utility for accessibility */
+@layer base {
+  :focus-visible {
+    outline: 2px solid rgb(var(--brand));
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  input,
+  textarea,
+  select,
+  button {
+    font: inherit;
+  }
+}
+
+@layer components {
+  .thoth-card {
+    @apply rounded-xl border border-border bg-surface shadow-card;
+  }
+  .skeleton {
+    @apply relative overflow-hidden rounded-md bg-surface-2;
+  }
+  .skeleton::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgb(var(--border) / 0.6),
+      transparent
+    );
+    animation: shimmer 1.5s infinite;
+  }
+  /* Recharts theming hooks */
+  .recharts-cartesian-grid line {
+    stroke: rgb(var(--border));
+  }
+  .recharts-text {
+    fill: rgb(var(--muted));
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
