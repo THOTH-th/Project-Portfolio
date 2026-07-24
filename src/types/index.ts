@@ -77,6 +77,7 @@ export type Market = (typeof MARKETS)[number];
 
 export const TEAMS = [
   "Operations",
+  "Delivery",
   "Data",
   "Speech",
   "Vision",

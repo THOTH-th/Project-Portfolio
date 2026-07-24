@@ -14,6 +14,7 @@ import {
   RotateCcw,
   Download,
   Plus,
+  Pencil,
   Sun,
   Moon,
 } from "lucide-react";
@@ -26,6 +27,7 @@ import { MemberAvatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/States";
 import { ConfirmDialog } from "@/components/ui/Modal";
+import { MemberFormModal } from "@/components/settings/MemberFormModal";
 import { useData } from "@/context/DataContext";
 import { useToast } from "@/context/ToastContext";
 import {
@@ -222,6 +224,7 @@ function TeamSettings({
   const [role, setRole] = useState("");
   const [team, setTeam] = useState<Team>("Operations");
   const [toDelete, setToDelete] = useState<TeamMember | null>(null);
+  const [toEdit, setToEdit] = useState<TeamMember | null>(null);
 
   const add = () => {
     if (!name.trim()) {
@@ -292,6 +295,14 @@ function TeamSettings({
             <Button
               size="icon"
               variant="ghost"
+              aria-label={`Edit ${m.name}`}
+              onClick={() => setToEdit(m)}
+            >
+              <Pencil className="h-4 w-4" />
+            </Button>
+            <Button
+              size="icon"
+              variant="ghost"
               aria-label={`Remove ${m.name}`}
               onClick={() => setToDelete(m)}
             >
@@ -300,6 +311,12 @@ function TeamSettings({
           </div>
         ))}
       </div>
+
+      <MemberFormModal
+        open={Boolean(toEdit)}
+        onClose={() => setToEdit(null)}
+        member={toEdit}
+      />
 
       <ConfirmDialog
         open={Boolean(toDelete)}
