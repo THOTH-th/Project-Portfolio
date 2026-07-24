@@ -34,7 +34,7 @@ import { useData } from "@/context/DataContext";
 import { useToast } from "@/context/ToastContext";
 import { capacityStats, memberLoads } from "@/lib/selectors";
 import { TEAMS, type Allocation } from "@/types";
-import { cn, fteGap, formatDate, memberById } from "@/lib/utils";
+import { cn, fteGap, formatDate, memberById, projectHref } from "@/lib/utils";
 
 export default function CapacityPage() {
   const { state, hydrated, deleteAllocation } = useData();
@@ -367,7 +367,7 @@ export default function CapacityPage() {
                     <Tr key={p.id}>
                       <Td>
                         <Link
-                          href={`/projects/${encodeURIComponent(p.id)}`}
+                          href={projectHref(p.id)}
                           className="font-medium text-fg hover:text-brand"
                         >
                           {p.name}

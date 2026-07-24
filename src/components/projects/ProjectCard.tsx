@@ -7,7 +7,7 @@ import { StatusBadge, RiskBadge, PriorityBadge } from "@/components/ui/Badge";
 import { Progress } from "@/components/ui/Progress";
 import { AvatarStack, MemberAvatar } from "@/components/ui/Avatar";
 import type { Project, TeamMember } from "@/types";
-import { cn, fteGap, formatDate, isOverdue, memberById } from "@/lib/utils";
+import { cn, fteGap, formatDate, isOverdue, memberById, projectHref } from "@/lib/utils";
 
 export function ProjectCard({
   project,
@@ -26,7 +26,7 @@ export function ProjectCard({
 
   return (
     <Link
-      href={`/projects/${encodeURIComponent(project.id)}`}
+      href={projectHref(project.id)}
       className="group block focus-visible:outline-none"
     >
       <Card className="flex h-full flex-col p-5 transition-all group-hover:-translate-y-0.5 group-hover:shadow-card-hover group-focus-visible:ring-2 group-focus-visible:ring-brand/50">

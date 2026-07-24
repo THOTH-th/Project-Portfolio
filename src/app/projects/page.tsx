@@ -43,6 +43,7 @@ import {
   memberById,
   priorityRank,
   riskRank,
+  projectHref,
 } from "@/lib/utils";
 
 type SortKey =
@@ -328,7 +329,7 @@ export default function ProjectsPage() {
                   <Tr
                     key={p.id}
                     onClick={() =>
-                      router.push(`/projects/${encodeURIComponent(p.id)}`)
+                      router.push(projectHref(p.id))
                     }
                   >
                     <Td>

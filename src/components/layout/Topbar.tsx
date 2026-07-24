@@ -12,7 +12,7 @@ import {
   ShieldAlert,
   ListChecks,
 } from "lucide-react";
-import { cn, isOverdue } from "@/lib/utils";
+import { cn, isOverdue, projectHref } from "@/lib/utils";
 import { useData } from "@/context/DataContext";
 import { overdueActions, openRisks } from "@/lib/selectors";
 import { Badge } from "@/components/ui/Badge";
@@ -57,7 +57,7 @@ export function Topbar({ onOpenMobile }: { onOpenMobile: () => void }) {
         id: p.id,
         label: p.name,
         sub: `${p.code} · ${p.market}`,
-        href: `/projects/${encodeURIComponent(p.id)}`,
+        href: projectHref(p.id),
         kind: "project",
       }));
     const risks = state.risks

@@ -27,7 +27,7 @@ import {
   type ProjectFormErrors,
   type ProjectFormValues,
 } from "@/lib/projectForm";
-import { cn, toNumber } from "@/lib/utils";
+import { cn, projectHref, toNumber } from "@/lib/utils";
 
 export function ProjectForm({ existing }: { existing?: Project }) {
   const router = useRouter();
@@ -110,7 +110,7 @@ export function ProjectForm({ existing }: { existing?: Project }) {
       }
       setDirty(false);
       setSaving(false);
-      router.push(`/projects/${encodeURIComponent(draft.id)}`);
+      router.push(projectHref(draft.id));
     }, 500);
   };
 
@@ -513,7 +513,7 @@ export function ProjectForm({ existing }: { existing?: Project }) {
       <ConfirmDialog
         open={cancelOpen}
         onClose={() => setCancelOpen(false)}
-        onConfirm={() => router.push(isEdit && existing ? `/projects/${encodeURIComponent(existing.id)}` : "/projects")}
+        onConfirm={() => router.push(isEdit && existing ? projectHref(existing.id) : "/projects")}
         title="Discard changes?"
         message="You have unsaved changes. If you leave now, they will be lost."
         confirmLabel="Discard"

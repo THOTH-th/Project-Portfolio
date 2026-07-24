@@ -54,6 +54,7 @@ import {
   isOverdue,
   memberById,
   cn,
+  projectHref,
 } from "@/lib/utils";
 import { PROJECT_STATUS_TONE } from "@/lib/tokens";
 
@@ -313,7 +314,7 @@ export default function OverviewPage() {
                     key={p.id}
                     type="button"
                     onClick={() =>
-                      router.push(`/projects/${encodeURIComponent(p.id)}`)
+                      router.push(projectHref(p.id))
                     }
                     className="flex w-full items-center gap-3 px-5 py-3 text-left transition-colors hover:bg-surface-2/60"
                   >
@@ -574,7 +575,7 @@ function ProjectRow({
       <button
         type="button"
         onClick={() =>
-          router.push(`/projects/${encodeURIComponent(project.id)}`)
+          router.push(projectHref(project.id))
         }
         className="flex w-full items-center gap-4 px-5 py-3.5 text-left transition-colors hover:bg-surface-2/60"
       >

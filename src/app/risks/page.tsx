@@ -42,7 +42,7 @@ import {
   RISK_STATUSES,
   type Risk,
 } from "@/types";
-import { formatDate, isOverdue, memberById, riskRank } from "@/lib/utils";
+import { formatDate, isOverdue, memberById, projectHref, riskRank } from "@/lib/utils";
 
 type SortKey = "title" | "level" | "score" | "dueDate" | "status";
 
@@ -252,7 +252,7 @@ export default function RisksPage() {
                     <Td>
                       {project ? (
                         <Link
-                          href={`/projects/${encodeURIComponent(project.id)}`}
+                          href={projectHref(project.id)}
                           className="whitespace-nowrap text-sm text-muted hover:text-brand"
                         >
                           {project.name}

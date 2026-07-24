@@ -23,6 +23,19 @@ export function nowIso(): string {
   return new Date().toISOString();
 }
 
+/**
+ * Internal navigation targets for a project. Query-param routes (rather than
+ * path params) keep deep-links working under static hosting (GitHub Pages) for
+ * projects created at runtime, whose ids are not known at build time.
+ */
+export function projectHref(id: string): string {
+  return `/projects/detail?id=${encodeURIComponent(id)}`;
+}
+
+export function projectEditHref(id: string): string {
+  return `/projects/edit?id=${encodeURIComponent(id)}`;
+}
+
 /** Format an ISO date as e.g. "Jul 24, 2026". */
 export function formatDate(iso: string | null | undefined): string {
   if (!iso) return "—";

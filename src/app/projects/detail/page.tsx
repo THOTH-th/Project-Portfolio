@@ -1,8 +1,8 @@
 "use client";
 
-import { use, useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   Pencil,
@@ -56,6 +56,7 @@ import {
   formatDateTime,
   isOverdue,
   memberById,
+  projectEditHref,
   relativeTime,
 } from "@/lib/utils";
 
@@ -67,13 +68,17 @@ type TabId =
   | "timeline"
   | "activity";
 
-export default function ProjectDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = use(params);
-  const projectId = decodeURIComponent(id);
+export default function ProjectDetailPage() {
+  return (
+    <Suspense fallback={<div className="skeleton h-40 w-full rounded-xl" />}>
+      <ProjectDetailInner />
+    </Suspense>
+  );
+}
+
+function ProjectDetailInner() {
+  const searchParams = useSearchParams();
+  const projectId = searchParams.get("id") ?? "";
   const router = useRouter();
   const { state, hydrated, updateProject, updateAction, deleteProject } =
     useData();
@@ -194,7 +199,7 @@ export default function ProjectDetailPage({
             <Button
               variant="outline"
               onClick={() =>
-                router.push(`/projects/${encodeURIComponent(project.id)}/edit`)
+                router.push(projectEditHref(project.id))
               }
             >
               <Pencil className="h-4 w-4" />

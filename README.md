@@ -50,12 +50,36 @@ anytime from **Settings → Data**.
 | `/` | Overview dashboard (KPIs, health trend, needs-attention, status, pipeline, capacity, project details) |
 | `/projects` | Project directory — search, filters, sorting, list/card views, pagination |
 | `/projects/new` | Add project form (validation, sync preview) |
-| `/projects/[id]` | Project workspace — Overview, Capacity, Risks, Action Items, Timeline, Activity Log tabs |
-| `/projects/[id]/edit` | Edit project form |
+| `/projects/detail?id=…` | Project workspace — Overview, Capacity, Risks, Action Items, Timeline, Activity Log tabs |
+| `/projects/edit?id=…` | Edit project form |
 | `/capacity` | Capacity management — utilization, team & project allocation, warnings, leave |
 | `/risks` | Risk register — scoring, filters, inline status, add/edit/delete |
 | `/action-items` | Action tracker — statuses, overdue view, filters, complete-toggle |
 | `/settings` | Profile, Team, Categories, Status, Notifications, Appearance, Data |
+
+## Deployment (GitHub Pages)
+
+The app is a fully static, client-only SPA, so it deploys to GitHub Pages
+via `.github/workflows/deploy.yml`:
+
+- `next.config.ts` uses `output: "export"`, and the workflow sets
+  `PAGES_BASE_PATH=/Project-Portfolio` so assets resolve under the project
+  Pages path.
+- Project detail/edit use **query-param routes** (`/projects/detail?id=…`)
+  rather than path params, so deep-links and refreshes work for projects
+  created at runtime (whose ids aren't known at build time).
+
+**One-time setup:** in the repo, go to **Settings → Pages → Build and
+deployment → Source = GitHub Actions**. Every push to the deploy branch then
+builds and publishes automatically. The live URL is
+`https://<owner>.github.io/Project-Portfolio/`.
+
+To build the static site locally:
+
+```bash
+PAGES_BASE_PATH=/Project-Portfolio npm run build   # outputs ./out
+npx serve out                                       # preview
+```
 
 ## Project structure
 

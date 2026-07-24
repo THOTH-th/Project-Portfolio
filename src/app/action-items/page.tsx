@@ -43,7 +43,7 @@ import {
   PRIORITIES,
   type ActionItem,
 } from "@/types";
-import { cn, formatDate, isOverdue, memberById, priorityRank } from "@/lib/utils";
+import { cn, formatDate, isOverdue, memberById, priorityRank, projectHref } from "@/lib/utils";
 
 type SortKey = "title" | "priority" | "dueDate" | "status";
 
@@ -311,7 +311,7 @@ export default function ActionItemsPage() {
                     <Td>
                       {project ? (
                         <Link
-                          href={`/projects/${encodeURIComponent(project.id)}`}
+                          href={projectHref(project.id)}
                           className="whitespace-nowrap text-sm text-muted hover:text-brand"
                         >
                           {project.name}

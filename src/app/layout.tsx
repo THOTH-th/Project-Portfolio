@@ -2,12 +2,15 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Providers } from "./providers";
 
+// Matches next.config.ts — asset URLs need the same prefix on GitHub Pages.
+const basePath = process.env.PAGES_BASE_PATH || "";
+
 export const metadata: Metadata = {
   title: "THOTH · Project Portfolio Dashboard",
   description:
     "Full-loop intake and execution control for the THOTH project portfolio.",
   icons: {
-    icon: [{ url: "/favicon.svg", type: "image/svg+xml" }],
+    icon: [{ url: `${basePath}/favicon.svg`, type: "image/svg+xml" }],
   },
 };
 
