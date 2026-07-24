@@ -6,7 +6,7 @@ import { ChevronLeft, ChevronsLeft, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isNavActive, NAV_ITEMS } from "@/lib/nav";
 import { useData } from "@/context/DataContext";
-import { LogoMark, LogoWordmark } from "./Logo";
+import { LogoWordmark } from "./Logo";
 import { MemberAvatar } from "@/components/ui/Avatar";
 
 export function Sidebar({
@@ -23,7 +23,6 @@ export function Sidebar({
   const pathname = usePathname();
   const { state } = useData();
   const currentUser = state.members[0];
-  const org = state.settings.organizationName;
 
   return (
     <>
@@ -52,12 +51,12 @@ export function Sidebar({
           )}
         >
           {collapsed ? (
-            <span className="hidden lg:block">
-              <LogoMark />
+            <span className="hidden text-xl font-bold tracking-tight text-white lg:block">
+              T
             </span>
           ) : null}
           <div className={cn(collapsed ? "lg:hidden" : "")}>
-            <LogoWordmark org={org} />
+            <LogoWordmark />
           </div>
           <button
             type="button"

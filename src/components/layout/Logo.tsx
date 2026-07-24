@@ -29,26 +29,8 @@ export function LogoMark({ className }: { className?: string }) {
   );
 }
 
-export function LogoWordmark({
-  collapsed = false,
-  org = "THOTH AI",
-}: {
-  collapsed?: boolean;
-  org?: string;
-}) {
+export function LogoWordmark({ org = "THOTH" }: { org?: string }) {
   return (
-    <div className="flex items-center gap-2.5">
-      <LogoMark />
-      {!collapsed ? (
-        <span className="flex flex-col leading-tight">
-          <span className="text-sm font-bold tracking-tight text-white">
-            {org}
-          </span>
-          <span className="text-[11px] font-medium text-sidebar-muted">
-            Portfolio Control
-          </span>
-        </span>
-      ) : null}
-    </div>
+    <span className="text-xl font-bold tracking-tight text-white">{org}</span>
   );
 }
