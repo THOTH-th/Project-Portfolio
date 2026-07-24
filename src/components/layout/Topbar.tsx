@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Bell,
+  Cloud,
   Menu,
   Moon,
   Search,
@@ -33,7 +34,7 @@ const KIND_ICON = {
 
 export function Topbar({ onOpenMobile }: { onOpenMobile: () => void }) {
   const router = useRouter();
-  const { state, updateSettings, hydrated } = useData();
+  const { state, updateSettings, hydrated, synced } = useData();
   const [query, setQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -188,6 +189,17 @@ export function Topbar({ onOpenMobile }: { onOpenMobile: () => void }) {
       </div>
 
       <div className="flex items-center gap-1.5">
+        {/* Live-sync indicator */}
+        {synced ? (
+          <span
+            title="Data is shared live with your team via Firebase"
+            className="hidden items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400 sm:inline-flex"
+          >
+            <Cloud className="h-3.5 w-3.5" />
+            Synced
+          </span>
+        ) : null}
+
         {/* Theme toggle */}
         <button
           type="button"

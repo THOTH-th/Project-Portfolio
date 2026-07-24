@@ -132,9 +132,12 @@ export default function SettingsPage() {
 }
 
 function SectionSaveHint() {
+  const { synced } = useData();
   return (
     <p className="mt-4 text-xs text-muted">
-      Changes are saved to your browser and persist across refreshes.
+      {synced
+        ? "Project data syncs live to Firebase and is shared with your whole team. Appearance and notification preferences stay on this device."
+        : "Changes are saved to your browser and persist across refreshes."}
     </p>
   );
 }
@@ -549,7 +552,7 @@ function AppearanceSettings({
 
 /* ---------- Data ---------- */
 function DataSettings({ onReset }: { onReset: () => void }) {
-  const { state } = useData();
+  const { state, synced } = useData();
   const toast = useToast();
   const [resetOpen, setResetOpen] = useState(false);
 
@@ -611,7 +614,9 @@ function DataSettings({ onReset }: { onReset: () => void }) {
               Reset to sample data
             </p>
             <p className="text-xs text-muted">
-              Discards all your changes and restores the original demo dataset.
+              {synced
+                ? "Wipes the shared database and restores the demo dataset — this affects everyone."
+                : "Discards all your changes and restores the original demo dataset."}
             </p>
           </div>
           <Button variant="danger" onClick={() => setResetOpen(true)}>
@@ -633,7 +638,11 @@ function DataSettings({ onReset }: { onReset: () => void }) {
           toast.success("Data reset", "Sample dataset restored.");
         }}
         title="Reset all data?"
-        message="This permanently discards every change you've made and restores the sample dataset. This cannot be undone."
+        message={
+          synced
+            ? "This wipes the shared team database and restores the sample dataset for everyone. This cannot be undone."
+            : "This permanently discards every change you've made and restores the sample dataset. This cannot be undone."
+        }
         confirmLabel="Reset everything"
         destructive
       />
