@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronsLeft, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isNavActive, NAV_ITEMS } from "@/lib/nav";
 import { useData } from "@/context/DataContext";
+import { useAuth } from "@/context/AuthContext";
 import { LogoWordmark } from "./Logo";
 import { MemberAvatar } from "@/components/ui/Avatar";
 
@@ -22,6 +23,7 @@ export function Sidebar({
 }) {
   const pathname = usePathname();
   const { state } = useData();
+  const { user, signOut } = useAuth();
   const currentUser = state.members[0];
 
   return (
@@ -126,16 +128,19 @@ export function Sidebar({
             ) : null}
             <div className={cn("min-w-0 flex-1", collapsed ? "lg:hidden" : "")}>
               <p className="truncate text-sm font-semibold text-white">
-                {currentUser?.name ?? "User"}
+                {user?.email ?? currentUser?.name ?? "User"}
               </p>
               <p className="truncate text-xs text-sidebar-muted">
-                {currentUser?.role ?? "Member"}
+                {user ? "Signed in" : currentUser?.role ?? "Member"}
               </p>
             </div>
             <button
               type="button"
               title="Sign out"
               aria-label="Sign out"
+              onClick={() => {
+                if (user) void signOut();
+              }}
               className={cn(
                 "rounded-lg p-1.5 text-sidebar-muted hover:bg-sidebar-hover hover:text-white",
                 collapsed ? "lg:hidden" : "",

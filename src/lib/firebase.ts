@@ -1,5 +1,6 @@
 import { getApps, initializeApp, type FirebaseApp } from "firebase/app";
 import { getFirestore, type Firestore } from "firebase/firestore";
+import { getAuth, type Auth } from "firebase/auth";
 
 /**
  * Public Firebase web config. These values are safe to ship in client code —
@@ -21,17 +22,35 @@ export const FIREBASE_ENABLED =
 
 let app: FirebaseApp | undefined;
 let firestore: Firestore | undefined;
+let auth: Auth | undefined;
+
+function getApp(): FirebaseApp {
+  app = getApps()[0] ?? initializeApp(firebaseConfig);
+  return app;
+}
 
 /** Lazily initialise Firestore in the browser (never on the server). */
 export function getDb(): Firestore | undefined {
   if (!FIREBASE_ENABLED || typeof window === "undefined") return undefined;
   if (!firestore) {
     try {
-      app = getApps()[0] ?? initializeApp(firebaseConfig);
-      firestore = getFirestore(app);
+      firestore = getFirestore(getApp());
     } catch {
       return undefined;
     }
   }
   return firestore;
+}
+
+/** Lazily initialise Firebase Auth in the browser (never on the server). */
+export function getAuthInstance(): Auth | undefined {
+  if (!FIREBASE_ENABLED || typeof window === "undefined") return undefined;
+  if (!auth) {
+    try {
+      auth = getAuth(getApp());
+    } catch {
+      return undefined;
+    }
+  }
+  return auth;
 }
