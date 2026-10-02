@@ -257,3 +257,45 @@ export function HorizontalBarChart({
     </ResponsiveContainer>
   );
 }
+
+export interface GroupedDatum {
+  label: string;
+  need: number;
+  actual: number;
+}
+
+/** Side-by-side bars comparing two series (e.g. FTE need vs. actual). */
+export function GroupedBarChart({
+  data,
+  height = 240,
+  needColor = "#2563eb",
+  actualColor = "#93c5fd",
+}: {
+  data: GroupedDatum[];
+  height?: number;
+  needColor?: string;
+  actualColor?: string;
+}) {
+  return (
+    <ResponsiveContainer width="100%" height={height}>
+      <BarChart data={data} margin={{ top: 16, right: 8, left: -12, bottom: 0 }} barGap={4}>
+        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+        <XAxis
+          dataKey="label"
+          tick={AXIS}
+          tickLine={false}
+          axisLine={false}
+          interval={0}
+          angle={data.length > 6 ? -18 : 0}
+          textAnchor={data.length > 6 ? "end" : "middle"}
+          height={data.length > 6 ? 54 : 30}
+        />
+        <YAxis tick={AXIS} tickLine={false} axisLine={false} width={32} allowDecimals={false} />
+        <Tooltip content={<ChartTooltip />} cursor={{ fill: "rgb(var(--surface-2))" }} />
+        <Legend iconType="circle" wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
+        <Bar dataKey="need" name="FTE Need" fill={needColor} radius={[5, 5, 0, 0]} maxBarSize={28} />
+        <Bar dataKey="actual" name="FTE Actual" fill={actualColor} radius={[5, 5, 0, 0]} maxBarSize={28} />
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}

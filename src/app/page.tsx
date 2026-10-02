@@ -9,77 +9,108 @@ import {
   BarChart3,
   AlertTriangle,
   ListChecks,
-  ArrowUpRight,
+  CalendarClock,
   Plus,
+  ArrowUpRight,
+  ChevronDown,
+  ShieldAlert,
   CircleDot,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { KpiCard } from "@/components/ui/KpiCard";
 import { Button } from "@/components/ui/Button";
-import { Progress } from "@/components/ui/Progress";
 import { MemberAvatar } from "@/components/ui/Avatar";
 import { StatusBadge, RiskBadge } from "@/components/ui/Badge";
 import { EmptyState, CardSkeleton } from "@/components/ui/States";
+import { Tabs } from "@/components/ui/Tabs";
+import { Table, Th, Td, Tr } from "@/components/ui/Table";
 import {
   FilterBar,
   FilterSelect,
   ClearFiltersButton,
 } from "@/components/ui/Filters";
 import {
-  HealthTrendChart,
-  VerticalBarChart,
-  type TrendPoint,
+  DonutChart,
+  GroupedBarChart,
+  type GroupedDatum,
 } from "@/components/charts/Charts";
+import { GanttChart, type GanttItem } from "@/components/charts/GanttChart";
 import { useData } from "@/context/DataContext";
 import {
   atRiskProjects,
-  capacityStats,
-  completionRate,
   countBy,
+  isActiveProject,
   openActions,
-  portfolioKpis,
+  openRisks,
+  totalOpenFteGap,
+  totalRequiredFte,
 } from "@/lib/selectors";
 import {
   MARKETS,
   PRIORITIES,
   PROJECT_STAGES,
   PROJECT_STATUSES,
-  type Project,
 } from "@/types";
 import {
-  daysUntil,
+  cn,
   fteGap,
   formatDate,
+  formatDeadline,
+  isOngoingDate,
   isOverdue,
   memberById,
-  cn,
   projectHref,
+  sum,
 } from "@/lib/utils";
-import { PROJECT_STATUS_TONE } from "@/lib/tokens";
+import {
+  PRIORITY_TONE,
+  PROJECT_STATUS_TONE,
+  RISK_LEVEL_TONE,
+} from "@/lib/tokens";
+
+type Period = "month" | "quarter" | "year" | "all";
+
+const PERIOD_LABEL: Record<Period, string> = {
+  month: "This Month",
+  quarter: "This Quarter",
+  year: "This Year",
+  all: "All Time",
+};
+
+function periodWindow(period: Period, now: Date): [Date | null, Date | null] {
+  const y = now.getFullYear();
+  const m = now.getMonth();
+  if (period === "month")
+    return [new Date(y, m, 1), new Date(y, m + 1, 0, 23, 59, 59)];
+  if (period === "quarter") {
+    const q = Math.floor(m / 3);
+    return [new Date(y, q * 3, 1), new Date(y, q * 3 + 3, 0, 23, 59, 59)];
+  }
+  if (period === "year") return [new Date(y, 0, 1), new Date(y, 11, 31, 23, 59, 59)];
+  return [null, null];
+}
 
 export default function OverviewPage() {
   const router = useRouter();
   const { state, hydrated } = useData();
-  const { projects, members, actionItems, allocations } = state;
+  const { projects, members, actionItems, risks } = state;
 
+  const [period, setPeriod] = useState<Period>("quarter");
   const [market, setMarket] = useState("");
   const [owner, setOwner] = useState("");
   const [stage, setStage] = useState("");
   const [status, setStatus] = useState("");
   const [priority, setPriority] = useState("");
+  const [riskTab, setRiskTab] = useState<"risks" | "actions">("risks");
 
-  const ownerOptions = useMemo(
-    () => members.map((m) => m.name),
-    [members],
-  );
+  const ownerOptions = useMemo(() => members.map((m) => m.name), [members]);
 
   const filtered = useMemo(
     () =>
       projects.filter((p) => {
         if (market && p.market !== market) return false;
-        if (owner && memberById(members, p.ownerId)?.name !== owner)
-          return false;
+        if (owner && memberById(members, p.ownerId)?.name !== owner) return false;
         if (stage && p.stage !== stage) return false;
         if (status && p.status !== status) return false;
         if (priority && p.priority !== priority) return false;
@@ -88,76 +119,7 @@ export default function OverviewPage() {
     [projects, members, market, owner, stage, status, priority],
   );
 
-  const hasFilters = Boolean(
-    market || owner || stage || status || priority,
-  );
-
-  const kpis = useMemo(
-    () => portfolioKpis({ ...state, projects: filtered }),
-    [state, filtered],
-  );
-  const cap = useMemo(
-    () => capacityStats(members, allocations),
-    [members, allocations],
-  );
-
-  const statusData = useMemo(
-    () =>
-      countBy(filtered, (p) => p.status, PROJECT_STATUSES).map((d) => ({
-        ...d,
-        color: PROJECT_STATUS_TONE[d.label].hex,
-      })),
-    [filtered],
-  );
-
-  const pipelineData = useMemo(
-    () =>
-      countBy(filtered, (p) => p.stage, PROJECT_STAGES).map((d) => ({
-        label: d.label === "Requirement Alignment" ? "Req. Align" : d.label,
-        value: d.value,
-      })),
-    [filtered],
-  );
-
-  const trend = useMemo<TrendPoint[]>(() => {
-    // Synthesize an 8-week portfolio-health trend anchored to current values.
-    const activeNow = filtered.filter((p) => p.status !== "Completed").length;
-    const gapNow = kpis.openFteGap;
-    const weeks = ["Wk 1", "Wk 2", "Wk 3", "Wk 4", "Wk 5", "Wk 6", "Wk 7", "Now"];
-    return weeks.map((label, i) => {
-      const t = i / (weeks.length - 1);
-      return {
-        label,
-        projects: Math.max(0, Math.round(activeNow - (1 - t) * 9)),
-        gap: Math.max(0, Math.round(gapNow + (1 - t) * 120)),
-      };
-    });
-  }, [filtered, kpis.openFteGap]);
-
-  const needsAttention = useMemo(() => {
-    return atRiskProjects(filtered)
-      .concat(
-        filtered.filter(
-          (p) =>
-            p.status !== "Completed" &&
-            isOverdue(p.nextActionDueDate) &&
-            !atRiskProjects(filtered).includes(p),
-        ),
-      )
-      .slice(0, 5);
-  }, [filtered]);
-
-  const recentActions = useMemo(
-    () =>
-      openActions(actionItems)
-        .filter((a) => filtered.some((p) => p.id === a.projectId))
-        .sort((a, b) => +new Date(a.dueDate) - +new Date(b.dueDate))
-        .slice(0, 5),
-    [actionItems, filtered],
-  );
-
-  const tableProjects = filtered.slice(0, 7);
-
+  const hasFilters = Boolean(market || owner || stage || status || priority);
   const clearFilters = () => {
     setMarket("");
     setOwner("");
@@ -166,15 +128,115 @@ export default function OverviewPage() {
     setPriority("");
   };
 
+  const active = useMemo(() => filtered.filter(isActiveProject), [filtered]);
+  const requiredFte = totalRequiredFte(filtered);
+  const assignedFte = sum(active.map((p) => p.assignedFTE));
+  const openGap = totalOpenFteGap(filtered);
+  const atRisk = atRiskProjects(filtered);
+  const openActs = useMemo(
+    () => openActions(actionItems).filter((a) => filtered.some((p) => p.id === a.projectId)),
+    [actionItems, filtered],
+  );
+
+  const now = useMemo(() => new Date(), []);
+  const [winStart, winEnd] = useMemo(() => periodWindow(period, now), [period, now]);
+  const upcomingGoLive = useMemo(
+    () =>
+      active.filter((p) => {
+        if (p.stage === "Go-live" || p.stage === "Calibration") return true;
+        if (isOngoingDate(p.endDate)) return false;
+        const d = new Date(p.endDate).getTime();
+        if (winStart && winEnd)
+          return d >= winStart.getTime() && d <= winEnd.getTime();
+        return d >= now.getTime();
+      }),
+    [active, winStart, winEnd, now],
+  );
+
+  // Status donut + legend
+  const statusData = useMemo(
+    () =>
+      countBy(filtered, (p) => p.status, PROJECT_STATUSES)
+        .filter((d) => d.value > 0)
+        .map((d) => ({ ...d, color: PROJECT_STATUS_TONE[d.label].hex })),
+    [filtered],
+  );
+
+  // Capacity / workload (FTE need vs actual) by market
+  const workload = useMemo<GroupedDatum[]>(
+    () =>
+      MARKETS.map((mk) => {
+        const list = active.filter((p) => p.market === mk);
+        return {
+          label: mk,
+          need: sum(list.map((p) => p.requiredFTE)),
+          actual: sum(list.map((p) => p.assignedFTE)),
+        };
+      }).filter((d) => d.need > 0 || d.actual > 0),
+    [active],
+  );
+
+  // Risks & Action Items panel
+  const topRisks = useMemo(
+    () =>
+      openRisks(risks)
+        .filter((r) => filtered.some((p) => p.id === r.projectId))
+        .sort((a, b) => b.probability * b.impact - a.probability * a.impact)
+        .slice(0, 5),
+    [risks, filtered],
+  );
+  const topActions = useMemo(
+    () =>
+      [...openActs]
+        .sort((a, b) => +new Date(a.dueDate) - +new Date(b.dueDate))
+        .slice(0, 5),
+    [openActs],
+  );
+
+  // Gantt — full calendar year of the dominant project year
+  const gantt = useMemo(() => {
+    const yearCounts = new Map<number, number>();
+    for (const p of filtered) {
+      const yy = new Date(p.startDate).getFullYear();
+      if (!Number.isNaN(yy)) yearCounts.set(yy, (yearCounts.get(yy) ?? 0) + 1);
+    }
+    let domYear = now.getFullYear();
+    let best = -1;
+    for (const [yy, c] of yearCounts) if (c > best) { best = c; domYear = yy; }
+    const rangeStart = new Date(domYear, 0, 1);
+    const rangeEnd = new Date(domYear, 11, 31, 23, 59, 59);
+    const items: GanttItem[] = active
+      .slice()
+      .sort((a, b) => +new Date(a.startDate) - +new Date(b.startDate))
+      .slice(0, 9)
+      .map((p) => ({
+        id: p.id,
+        label: p.name,
+        sub: p.code,
+        start: p.startDate,
+        end: p.endDate,
+        color: PROJECT_STATUS_TONE[p.status].hex,
+        milestone: isOngoingDate(p.endDate) ? undefined : p.endDate,
+      }));
+    return { rangeStart, rangeEnd, items };
+  }, [filtered, active, now]);
+
+  const tableProjects = useMemo(
+    () => [...filtered].sort((a, b) => Number(isActiveProject(b)) - Number(isActiveProject(a))).slice(0, 7),
+    [filtered],
+  );
+
+  const totalInView = filtered.length || 1;
+
   if (!hydrated) {
     return (
-      <div>
+      <div className="space-y-6">
         <PageHeader
-          title="Project Portfolio Dashboard"
-          description="Full-loop intake & execution control"
+          title="Portfolio Dashboard"
+          description="Track project health, capacity and key milestones across the portfolio."
         />
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
-          {Array.from({ length: 5 }).map((_, i) => (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
             <CardSkeleton key={i} />
           ))}
         </div>
@@ -182,439 +244,311 @@ export default function OverviewPage() {
     );
   }
 
-  const completion = completionRate(filtered);
-
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Project Portfolio Dashboard"
-        description="Full-loop intake & execution control"
+        title="Portfolio Dashboard"
+        description="Track project health, capacity and key milestones across the portfolio."
         actions={
-          <Button onClick={() => router.push("/projects/new")}>
-            <Plus className="h-4 w-4" />
-            Add Project
-          </Button>
+          <>
+            <div className="relative">
+              <CalendarClock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-faint" />
+              <select
+                value={period}
+                onChange={(e) => setPeriod(e.target.value as Period)}
+                aria-label="Time period"
+                className="h-9 appearance-none rounded-lg border border-border-strong bg-surface pl-9 pr-8 text-sm font-medium text-fg transition-colors hover:bg-surface-2 focus:outline-none focus:ring-2 focus:ring-brand/40"
+              >
+                {(Object.keys(PERIOD_LABEL) as Period[]).map((p) => (
+                  <option key={p} value={p}>
+                    {PERIOD_LABEL[p]}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-faint" />
+            </div>
+            <Button onClick={() => router.push("/projects/new")}>
+              <Plus className="h-4 w-4" />
+              Add Project
+            </Button>
+          </>
         }
       />
 
       {/* Filters */}
       <Card className="p-3">
         <FilterBar>
-          <FilterSelect
-            label="Markets"
-            value={market}
-            onChange={setMarket}
-            options={MARKETS}
-          />
-          <FilterSelect
-            label="Owners"
-            value={owner}
-            onChange={setOwner}
-            options={ownerOptions}
-          />
-          <FilterSelect
-            label="Stages"
-            value={stage}
-            onChange={setStage}
-            options={PROJECT_STAGES}
-          />
-          <FilterSelect
-            label="Statuses"
-            value={status}
-            onChange={setStatus}
-            options={PROJECT_STATUSES}
-          />
-          <FilterSelect
-            label="Priorities"
-            value={priority}
-            onChange={setPriority}
-            options={PRIORITIES}
-          />
+          <FilterSelect label="Markets" value={market} onChange={setMarket} options={MARKETS} />
+          <FilterSelect label="Owners" value={owner} onChange={setOwner} options={ownerOptions} />
+          <FilterSelect label="Stages" value={stage} onChange={setStage} options={PROJECT_STAGES} />
+          <FilterSelect label="Statuses" value={status} onChange={setStatus} options={PROJECT_STATUSES} />
+          <FilterSelect label="Priorities" value={priority} onChange={setPriority} options={PRIORITIES} />
           {hasFilters ? <ClearFiltersButton onClick={clearFilters} /> : null}
         </FilterBar>
       </Card>
 
-      {/* KPIs */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+      {/* KPI cards */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <KpiCard
           label="Active Projects"
-          value={kpis.totalActive}
+          value={active.length}
           icon={<FolderKanban className="h-5 w-5" />}
+          progress={(active.length / totalInView) * 100}
+          progressTone="brand"
           hint={`${filtered.length} total in view`}
         />
         <KpiCard
-          label="Required FTE"
-          value={kpis.requiredFte}
-          icon={<Users className="h-5 w-5" />}
-          iconClass="bg-violet-100 text-violet-600 dark:bg-violet-500/15 dark:text-violet-400"
-          hint="Across active projects"
-        />
-        <KpiCard
-          label="Open FTE Gap"
-          value={kpis.openFteGap}
-          icon={<BarChart3 className="h-5 w-5" />}
-          iconClass="bg-rose-100 text-rose-600 dark:bg-rose-500/15 dark:text-rose-400"
-          delta={kpis.openFteGap > 0 ? "Understaffed" : "Balanced"}
-          deltaTone={kpis.openFteGap > 0 ? "up-bad" : "up-good"}
-        />
-        <KpiCard
           label="At Risk / Blocked"
-          value={kpis.atRisk}
+          value={atRisk.length}
           icon={<AlertTriangle className="h-5 w-5" />}
           iconClass="bg-amber-100 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400"
+          progress={(atRisk.length / totalInView) * 100}
+          progressTone="warning"
           hint="Needs intervention"
         />
         <KpiCard
+          label="Total FTE"
+          value={requiredFte}
+          icon={<Users className="h-5 w-5" />}
+          iconClass="bg-violet-100 text-violet-600 dark:bg-violet-500/15 dark:text-violet-400"
+          progress={requiredFte > 0 ? (assignedFte / requiredFte) * 100 : 0}
+          progressTone="success"
+          hint={`${assignedFte} assigned of ${requiredFte}`}
+        />
+        <KpiCard
+          label="Open FTE Gap"
+          value={openGap}
+          icon={<BarChart3 className="h-5 w-5" />}
+          iconClass="bg-rose-100 text-rose-600 dark:bg-rose-500/15 dark:text-rose-400"
+          progress={requiredFte > 0 ? (openGap / requiredFte) * 100 : 0}
+          progressTone="danger"
+          delta={openGap > 0 ? "Understaffed" : "Balanced"}
+          deltaTone={openGap > 0 ? "up-bad" : "up-good"}
+        />
+        <KpiCard
           label="Open Actions"
-          value={kpis.openActions}
+          value={openActs.length}
           icon={<ListChecks className="h-5 w-5" />}
           iconClass="bg-sky-100 text-sky-600 dark:bg-sky-500/15 dark:text-sky-400"
-          delta={kpis.overdueActions > 0 ? `${kpis.overdueActions} overdue` : "On track"}
-          deltaTone={kpis.overdueActions > 0 ? "up-bad" : "up-good"}
+          progress={(openActs.length / Math.max(1, actionItems.length)) * 100}
+          progressTone="brand"
+          hint={`${openActs.filter((a) => isOverdue(a.dueDate)).length} overdue`}
+        />
+        <KpiCard
+          label="Upcoming Go-Live"
+          value={upcomingGoLive.length}
+          icon={<CalendarClock className="h-5 w-5" />}
+          iconClass="bg-indigo-100 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-400"
+          progress={(upcomingGoLive.length / Math.max(1, active.length)) * 100}
+          progressTone="brand"
+          hint={PERIOD_LABEL[period]}
         />
       </div>
 
-      {/* Trend + Needs attention */}
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-        <Card className="xl:col-span-2">
-          <CardHeader
-            title="Portfolio Health Trend"
-            subtitle="Active projects vs. open FTE gap over time"
-          />
-          <CardBody>
-            <HealthTrendChart data={trend} />
-          </CardBody>
-        </Card>
-
-        <Card>
-          <CardHeader
-            title="Needs Attention"
-            subtitle={`${needsAttention.length} projects flagged`}
-            action={
-              <Link
-                href="/risks"
-                className="text-sm font-medium text-brand hover:underline"
-              >
-                View all
-              </Link>
-            }
-          />
-          <div className="divide-y divide-border">
-            {needsAttention.length === 0 ? (
-              <EmptyState
-                icon={<CircleDot className="h-5 w-5" />}
-                title="Nothing needs attention"
-                description="All projects in view are healthy."
-              />
-            ) : (
-              needsAttention.map((p) => {
-                const ownerM = memberById(members, p.ownerId);
-                return (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onClick={() =>
-                      router.push(projectHref(p.id))
-                    }
-                    className="flex w-full items-center gap-3 px-5 py-3 text-left transition-colors hover:bg-surface-2/60"
-                  >
-                    <span
-                      className={cn(
-                        "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
-                        p.riskLevel === "Critical" || p.riskLevel === "High"
-                          ? "bg-rose-100 text-rose-600 dark:bg-rose-500/15 dark:text-rose-400"
-                          : "bg-amber-100 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400",
-                      )}
-                    >
-                      <AlertTriangle className="h-4 w-4" />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-medium text-fg">
-                        {p.name}
-                      </span>
-                      <span className="block truncate text-xs text-muted">
-                        {p.nextAction}
-                      </span>
-                    </span>
-                    <span className="hidden shrink-0 sm:block">
-                      {ownerM ? (
-                        <MemberAvatar member={ownerM} size="xs" />
-                      ) : null}
-                    </span>
-                    <span
-                      className={cn(
-                        "shrink-0 text-xs font-medium",
-                        isOverdue(p.nextActionDueDate)
-                          ? "text-rose-500"
-                          : "text-muted",
-                      )}
-                    >
-                      {formatDate(p.nextActionDueDate)}
-                    </span>
-                  </button>
-                );
-              })
-            )}
-          </div>
-        </Card>
-      </div>
-
-      {/* Status + Pipeline + Capacity */}
+      {/* Status · Workload · Risks/Actions */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <Card>
-          <CardHeader title="Project Status" subtitle="Distribution by status" />
-          <CardBody className="space-y-3">
-            {statusData.map((s) => {
-              const total = filtered.length || 1;
-              return (
-                <div key={s.label}>
-                  <div className="mb-1 flex items-center justify-between text-sm">
-                    <span className="flex items-center gap-2 text-fg">
-                      <span
-                        className="h-2.5 w-2.5 rounded-full"
-                        style={{ background: s.color }}
-                      />
-                      {s.label}
-                    </span>
-                    <span className="font-medium text-muted tabular-nums">
-                      {s.value}
-                    </span>
-                  </div>
-                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-2">
-                    <div
-                      className="h-full rounded-full transition-all"
-                      style={{
-                        width: `${(s.value / total) * 100}%`,
-                        background: s.color,
-                      }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </CardBody>
-        </Card>
-
-        <Card>
-          <CardHeader
-            title="Pipeline by Stage"
-            subtitle="Projects at each stage"
-          />
+          <CardHeader title="Project Status Overview" subtitle="Distribution by status" />
           <CardBody>
-            <VerticalBarChart data={pipelineData} />
+            {statusData.length === 0 ? (
+              <EmptyState icon={<CircleDot className="h-5 w-5" />} title="No projects in view" />
+            ) : (
+              <div className="flex items-center gap-4">
+                <div className="w-1/2 shrink-0">
+                  <DonutChart
+                    data={statusData}
+                    height={180}
+                    centerValue={String(active.length)}
+                    centerLabel="Active"
+                  />
+                </div>
+                <ul className="flex-1 space-y-2">
+                  {statusData.map((s) => (
+                    <li key={s.label} className="flex items-center justify-between text-sm">
+                      <span className="flex items-center gap-2 text-fg">
+                        <span className="h-2.5 w-2.5 rounded-full" style={{ background: s.color }} />
+                        {s.label}
+                      </span>
+                      <span className="font-semibold tabular-nums text-muted">{s.value}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </CardBody>
         </Card>
 
         <Card>
           <CardHeader
-            title="Capacity Overview"
-            subtitle="Team utilization snapshot"
+            title="Capacity / Workload"
+            subtitle="FTE need vs. actual by market"
             action={
-              <Link
-                href="/capacity"
-                className="text-sm font-medium text-brand hover:underline"
-              >
+              <Link href="/capacity" className="text-sm font-medium text-brand hover:underline">
                 Details
               </Link>
             }
           />
-          <CardBody className="space-y-5">
-            <div>
-              <div className="mb-1.5 flex items-center justify-between text-sm">
-                <span className="text-muted">Utilization</span>
-                <span className="font-semibold text-fg">{cap.utilization}%</span>
-              </div>
-              <Progress value={cap.utilization} tone="auto" threshold={state.settings.utilizationThreshold} />
+          <CardBody>
+            {workload.length === 0 ? (
+              <EmptyState icon={<Users className="h-5 w-5" />} title="No capacity data" />
+            ) : (
+              <GroupedBarChart data={workload} />
+            )}
+          </CardBody>
+        </Card>
+
+        <Card>
+          <div className="px-5 pt-4">
+            <div className="mb-2 flex items-center justify-between">
+              <h3 className="text-base font-semibold text-fg">Risks &amp; Action Items</h3>
             </div>
-            <div className="grid grid-cols-3 gap-3 text-center">
-              <div className="rounded-lg bg-surface-2 p-3">
-                <p className="text-lg font-bold text-fg tabular-nums">
-                  {cap.totalCapacity}
-                </p>
-                <p className="text-xs text-muted">Capacity</p>
-              </div>
-              <div className="rounded-lg bg-surface-2 p-3">
-                <p className="text-lg font-bold text-fg tabular-nums">
-                  {cap.allocated.toFixed(0)}
-                </p>
-                <p className="text-xs text-muted">Allocated</p>
-              </div>
-              <div className="rounded-lg bg-surface-2 p-3">
-                <p
-                  className={cn(
-                    "text-lg font-bold tabular-nums",
-                    cap.remaining < 0 ? "text-rose-500" : "text-emerald-500",
-                  )}
-                >
-                  {cap.remaining.toFixed(0)}
-                </p>
-                <p className="text-xs text-muted">Remaining</p>
-              </div>
-            </div>
-            <div>
-              <div className="mb-1.5 flex items-center justify-between text-sm">
-                <span className="text-muted">Avg. completion</span>
-                <span className="font-semibold text-fg">{completion}%</span>
-              </div>
-              <Progress value={completion} tone="brand" />
-            </div>
+            <Tabs
+              tabs={[
+                { id: "risks", label: "Risks", count: topRisks.length },
+                { id: "actions", label: "Action Items", count: topActions.length },
+              ]}
+              active={riskTab}
+              onChange={(t) => setRiskTab(t as "risks" | "actions")}
+            />
+          </div>
+          <CardBody className="pt-3">
+            {riskTab === "risks" ? (
+              topRisks.length === 0 ? (
+                <EmptyState icon={<ShieldAlert className="h-5 w-5" />} title="No open risks" />
+              ) : (
+                <ul className="space-y-2.5">
+                  {topRisks.map((r) => (
+                    <li key={r.id} className="flex items-center gap-2.5">
+                      <span className={cn("h-2 w-2 shrink-0 rounded-full", RISK_LEVEL_TONE[r.level].dot)} />
+                      <Link href="/risks" className="min-w-0 flex-1 truncate text-sm text-fg hover:text-brand">
+                        {r.title}
+                      </Link>
+                      <RiskBadge level={r.level} />
+                    </li>
+                  ))}
+                </ul>
+              )
+            ) : topActions.length === 0 ? (
+              <EmptyState icon={<ListChecks className="h-5 w-5" />} title="No open actions" />
+            ) : (
+              <ul className="space-y-2.5">
+                {topActions.map((a) => {
+                  const overdue = isOverdue(a.dueDate);
+                  return (
+                    <li key={a.id} className="flex items-center gap-2.5">
+                      <span className={cn("h-2 w-2 shrink-0 rounded-full", PRIORITY_TONE[a.priority].dot)} />
+                      <Link href="/action-items" className="min-w-0 flex-1 truncate text-sm text-fg hover:text-brand">
+                        {a.title}
+                      </Link>
+                      <span className={cn("shrink-0 text-xs font-medium", overdue ? "text-rose-500" : "text-muted")}>
+                        {overdue ? "Overdue" : formatDate(a.dueDate)}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </CardBody>
         </Card>
       </div>
 
-      {/* Project details + recent actions */}
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-        <Card className="xl:col-span-2">
-          <CardHeader
-            title="Project Details"
-            subtitle="Live view of your active portfolio"
-            action={
-              <Link
-                href="/projects"
-                className="inline-flex items-center gap-1 text-sm font-medium text-brand hover:underline"
-              >
-                View all projects <ArrowUpRight className="h-3.5 w-3.5" />
-              </Link>
-            }
+      {/* Project Portfolio table */}
+      <Card>
+        <CardHeader
+          title="Project Portfolio"
+          subtitle="Live view of your active portfolio"
+          action={
+            <Link href="/projects" className="inline-flex items-center gap-1 text-sm font-medium text-brand hover:underline">
+              View all <ArrowUpRight className="h-3.5 w-3.5" />
+            </Link>
+          }
+        />
+        {tableProjects.length === 0 ? (
+          <EmptyState
+            icon={<FolderKanban className="h-6 w-6" />}
+            title="No projects match your filters"
+            action={hasFilters ? <Button variant="outline" onClick={clearFilters}>Clear filters</Button> : null}
           />
-          {tableProjects.length === 0 ? (
-            <EmptyState
-              icon={<FolderKanban className="h-5 w-5" />}
-              title="No projects match your filters"
-              description="Try clearing filters or adding a new project."
-              action={
-                hasFilters ? (
-                  <Button variant="outline" onClick={clearFilters}>
-                    Clear filters
-                  </Button>
-                ) : null
-              }
-            />
-          ) : (
-            <ul className="divide-y divide-border">
-              {tableProjects.map((p) => (
-                <ProjectRow key={p.id} project={p} members={members} />
-              ))}
-            </ul>
-          )}
-        </Card>
-
-        <Card>
-          <CardHeader
-            title="Upcoming Actions"
-            subtitle="Nearest due dates"
-            action={
-              <Link
-                href="/action-items"
-                className="text-sm font-medium text-brand hover:underline"
-              >
-                View all
-              </Link>
-            }
-          />
-          <div className="divide-y divide-border">
-            {recentActions.length === 0 ? (
-              <EmptyState
-                icon={<ListChecks className="h-5 w-5" />}
-                title="No open actions"
-                description="Everything is done for this view."
-              />
-            ) : (
-              recentActions.map((a) => {
-                const ownerM = memberById(members, a.ownerId);
-                const overdue = isOverdue(a.dueDate);
+        ) : (
+          <Table>
+            <thead>
+              <tr>
+                <Th>Project</Th>
+                <Th>Stage</Th>
+                <Th>Owner</Th>
+                <Th align="right">FTE Need</Th>
+                <Th align="right">FTE Actual</Th>
+                <Th align="right">Gap</Th>
+                <Th>Due Date</Th>
+                <Th>Status</Th>
+                <Th>Next Action</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {tableProjects.map((p) => {
+                const ownerM = memberById(members, p.ownerId);
+                const gap = fteGap(p);
                 return (
-                  <div
-                    key={a.id}
-                    className="flex items-center gap-3 px-5 py-3"
-                  >
-                    {ownerM ? (
-                      <MemberAvatar member={ownerM} size="sm" />
-                    ) : null}
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-fg">
-                        {a.title}
-                      </p>
-                      <p className="truncate text-xs text-muted">
-                        {ownerM?.name}
-                      </p>
-                    </div>
-                    <span
-                      className={cn(
-                        "shrink-0 text-xs font-medium",
-                        overdue ? "text-rose-500" : "text-muted",
-                      )}
-                    >
-                      {overdue
-                        ? "Overdue"
-                        : `${daysUntil(a.dueDate)}d`}
-                    </span>
-                  </div>
+                  <Tr key={p.id} onClick={() => router.push(projectHref(p.id))}>
+                    <Td>
+                      <p className="font-semibold text-fg">{p.name}</p>
+                      <p className="text-xs text-muted">{p.code}</p>
+                    </Td>
+                    <Td className="whitespace-nowrap text-muted">{p.stage}</Td>
+                    <Td>
+                      <div className="flex items-center gap-2">
+                        {ownerM ? <MemberAvatar member={ownerM} size="xs" /> : null}
+                        <span className="whitespace-nowrap text-sm text-fg">{ownerM?.name ?? "—"}</span>
+                      </div>
+                    </Td>
+                    <Td align="right" className="tabular-nums">{p.requiredFTE}</Td>
+                    <Td align="right" className="tabular-nums">{p.assignedFTE}</Td>
+                    <Td align="right">
+                      <span className={cn("font-semibold tabular-nums", gap > 0 ? "text-rose-500" : "text-emerald-500")}>
+                        {gap}
+                      </span>
+                    </Td>
+                    <Td>
+                      <span
+                        className={cn(
+                          "whitespace-nowrap text-sm",
+                          !isOngoingDate(p.endDate) && isOverdue(p.endDate) && p.status !== "Completed"
+                            ? "font-medium text-rose-500"
+                            : "text-muted",
+                        )}
+                      >
+                        {formatDeadline(p.endDate)}
+                      </span>
+                    </Td>
+                    <Td><StatusBadge status={p.status} /></Td>
+                    <Td className="max-w-[12rem] truncate text-muted">{p.nextAction || "—"}</Td>
+                  </Tr>
                 );
-              })
-            )}
-          </div>
-        </Card>
-      </div>
-    </div>
-  );
-}
+              })}
+            </tbody>
+          </Table>
+        )}
+      </Card>
 
-function ProjectRow({
-  project,
-  members,
-}: {
-  project: Project;
-  members: ReturnType<typeof useData>["state"]["members"];
-}) {
-  const router = useRouter();
-  const ownerM = memberById(members, project.ownerId);
-  const gap = fteGap(project);
-  return (
-    <li>
-      <button
-        type="button"
-        onClick={() =>
-          router.push(projectHref(project.id))
-        }
-        className="flex w-full items-center gap-4 px-5 py-3.5 text-left transition-colors hover:bg-surface-2/60"
-      >
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold text-fg">
-            {project.name}
-          </p>
-          <p className="truncate text-xs text-muted">
-            {project.code} · {project.market}
-          </p>
-        </div>
-        <div className="hidden w-28 shrink-0 md:block">
-          <div className="mb-1 flex items-center justify-between text-xs text-muted">
-            <span>Progress</span>
-            <span className="tabular-nums">{project.progress}%</span>
-          </div>
-          <Progress value={project.progress} size="sm" tone="brand" />
-        </div>
-        <div className="hidden w-16 shrink-0 text-right sm:block">
-          <span
-            className={cn(
-              "text-sm font-semibold tabular-nums",
-              gap > 0 ? "text-rose-500" : "text-emerald-500",
-            )}
-          >
-            {gap > 0 ? gap : gap === 0 ? "0" : gap}
-          </span>
-          <p className="text-[11px] text-muted">FTE gap</p>
-        </div>
-        <div className="hidden shrink-0 lg:block">
-          <StatusBadge status={project.status} />
-        </div>
-        <div className="hidden shrink-0 lg:block">
-          <RiskBadge level={project.riskLevel} />
-        </div>
-        {ownerM ? (
-          <MemberAvatar member={ownerM} size="sm" className="shrink-0" />
-        ) : null}
-      </button>
-    </li>
+      {/* Timeline / Milestones (Gantt) */}
+      <Card>
+        <CardHeader
+          title="Timeline / Milestones"
+          subtitle={`Project schedules for ${gantt.rangeStart.getFullYear()} · ◆ = go-live`}
+        />
+        <CardBody>
+          {gantt.items.length === 0 ? (
+            <EmptyState icon={<CalendarClock className="h-5 w-5" />} title="No active projects to schedule" />
+          ) : (
+            <GanttChart
+              items={gantt.items}
+              rangeStart={gantt.rangeStart}
+              rangeEnd={gantt.rangeEnd}
+              onSelect={(id) => router.push(projectHref(id))}
+            />
+          )}
+        </CardBody>
+      </Card>
+    </div>
   );
 }

@@ -1,6 +1,9 @@
 import type { ReactNode } from "react";
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Progress } from "./Progress";
+
+type ProgressTone = "brand" | "success" | "warning" | "danger";
 
 export function KpiCard({
   label,
@@ -10,6 +13,8 @@ export function KpiCard({
   delta,
   deltaTone = "neutral",
   hint,
+  progress,
+  progressTone = "brand",
 }: {
   label: string;
   value: ReactNode;
@@ -18,24 +23,33 @@ export function KpiCard({
   delta?: string;
   deltaTone?: "up-good" | "up-bad" | "down-good" | "down-bad" | "neutral";
   hint?: string;
+  /** 0-100; when provided a progress bar is shown at the bottom. */
+  progress?: number;
+  progressTone?: ProgressTone;
 }) {
   const up = deltaTone === "up-good" || deltaTone === "up-bad";
   const good = deltaTone === "up-good" || deltaTone === "down-good";
   return (
     <div className="thoth-card p-5 transition-shadow hover:shadow-card-hover">
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex items-center gap-3.5">
         <div
           className={cn(
-            "flex h-11 w-11 items-center justify-center rounded-xl",
+            "flex h-12 w-12 shrink-0 items-center justify-center rounded-full",
             iconClass ?? "bg-brand-soft text-brand",
           )}
         >
           {icon}
         </div>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-medium text-muted">{label}</p>
+          <p className="mt-0.5 text-2xl font-bold tracking-tight text-fg tabular-nums">
+            {value}
+          </p>
+        </div>
         {delta ? (
           <span
             className={cn(
-              "inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-semibold",
+              "inline-flex shrink-0 items-center gap-0.5 self-start rounded-full px-2 py-0.5 text-xs font-semibold",
               deltaTone === "neutral"
                 ? "bg-surface-2 text-muted"
                 : good
@@ -54,11 +68,11 @@ export function KpiCard({
           </span>
         ) : null}
       </div>
-      <p className="mt-4 text-3xl font-bold tracking-tight text-fg tabular-nums">
-        {value}
-      </p>
-      <p className="mt-1 text-sm font-medium text-muted">{label}</p>
-      {hint ? <p className="mt-0.5 text-xs text-faint">{hint}</p> : null}
+
+      {typeof progress === "number" ? (
+        <Progress value={progress} tone={progressTone} size="sm" className="mt-4" />
+      ) : null}
+      {hint ? <p className="mt-2 text-xs text-faint">{hint}</p> : null}
     </div>
   );
 }

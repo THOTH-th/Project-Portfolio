@@ -45,8 +45,8 @@ const config: Config = {
         "2xl": "20px",
       },
       boxShadow: {
-        card: "0 1px 2px 0 rgb(15 23 42 / 0.04), 0 1px 3px 0 rgb(15 23 42 / 0.06)",
-        "card-hover": "0 4px 12px -2px rgb(15 23 42 / 0.10), 0 2px 6px -2px rgb(15 23 42 / 0.06)",
+        card: "0 1px 2px 0 rgb(15 23 42 / 0.03), 0 8px 24px -10px rgb(15 23 42 / 0.10)",
+        "card-hover": "0 6px 16px -4px rgb(15 23 42 / 0.12), 0 12px 32px -12px rgb(15 23 42 / 0.14)",
         popover: "0 10px 30px -5px rgb(15 23 42 / 0.20), 0 4px 10px -4px rgb(15 23 42 / 0.10)",
       },
       fontFamily: {

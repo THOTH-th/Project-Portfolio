@@ -15,8 +15,10 @@ import {
 } from "lucide-react";
 import { cn, isOverdue, projectHref } from "@/lib/utils";
 import { useData } from "@/context/DataContext";
+import { useAuth } from "@/context/AuthContext";
 import { overdueActions, openRisks } from "@/lib/selectors";
 import { Badge } from "@/components/ui/Badge";
+import { Avatar } from "@/components/ui/Avatar";
 
 type SearchResult = {
   id: string;
@@ -35,6 +37,7 @@ const KIND_ICON = {
 export function Topbar({ onOpenMobile }: { onOpenMobile: () => void }) {
   const router = useRouter();
   const { state, updateSettings, hydrated, synced } = useData();
+  const { user } = useAuth();
   const [query, setQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -274,6 +277,15 @@ export function Topbar({ onOpenMobile }: { onOpenMobile: () => void }) {
             </div>
           ) : null}
         </div>
+
+        {/* User avatar */}
+        {hydrated && user ? (
+          <Avatar
+            name={user.email ?? "User"}
+            size="sm"
+            className="ml-1 hidden sm:inline-flex"
+          />
+        ) : null}
       </div>
     </header>
   );

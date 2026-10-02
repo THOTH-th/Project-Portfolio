@@ -86,11 +86,16 @@ export function Sidebar({
                   "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
                   collapsed && "lg:justify-center lg:px-0",
                   active
-                    ? "bg-brand text-white shadow-sm"
+                    ? "bg-white text-slate-900 shadow-sm"
                     : "text-sidebar-muted hover:bg-sidebar-hover hover:text-white",
                 )}
               >
-                <Icon className="h-5 w-5 shrink-0" />
+                <Icon
+                  className={cn(
+                    "h-5 w-5 shrink-0",
+                    active ? "text-brand" : "",
+                  )}
+                />
                 <span className={cn(collapsed ? "lg:hidden" : "")}>
                   {item.label}
                 </span>
