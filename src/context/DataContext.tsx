@@ -20,6 +20,7 @@ import type {
 } from "@/types";
 import { buildSeedState, DEFAULT_SETTINGS } from "@/data/seed";
 import { nowIso } from "@/lib/utils";
+import { useToast } from "@/context/ToastContext";
 import { FIREBASE_ENABLED, getDb } from "@/lib/firebase";
 import {
   COLLECTIONS,
@@ -103,6 +104,7 @@ function loadLocalState(): Omit<DataState, "settings"> {
 }
 
 export function DataProvider({ children }: { children: React.ReactNode }) {
+  const toast = useToast();
   const seed = useMemo(() => buildSeedState(), []);
   const [state, setState] = useState<DataState>(() => seed);
   const [hydrated, setHydrated] = useState(false);
@@ -115,6 +117,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   const readyRef = useRef<Set<string>>(new Set());
   const seedCheckedRef = useRef(false);
+  const erroredRef = useRef(false);
 
   // Load personal settings (both modes) and apply theme.
   useEffect(() => {
@@ -138,6 +141,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       onError: (err) => {
         console.error("Firestore subscription error:", err.message);
         setHydrated(true);
+        if (!erroredRef.current) {
+          erroredRef.current = true;
+          toast.error(
+            "Can't reach the shared database",
+            "Live sync is blocked — check your Firestore rules / permissions.",
+          );
+        }
       },
     });
     seedIfNeeded(db)
@@ -147,7 +157,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         if (readyRef.current.size >= COLLECTIONS.length) setHydrated(true);
       });
     return () => unsub();
-  }, [db]);
+  }, [db, toast]);
 
   // localStorage fallback mode.
   useEffect(() => {
@@ -173,7 +183,16 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     document.documentElement.setAttribute("data-theme", state.settings.theme);
   }, [state.settings.theme]);
 
-  const fail = (e: unknown) => console.error("Firestore write failed:", e);
+  const fail = useCallback(
+    (e: unknown) => {
+      console.error("Firestore write failed:", e);
+      toast.error(
+        "Couldn't save to the cloud",
+        "Your change may be blocked by Firestore permissions. Check the database rules.",
+      );
+    },
+    [toast],
+  );
 
   const patchLocal = useCallback(
     <T extends { id: string }>(list: T[], id: string, patch: Partial<T>): T[] =>
@@ -293,7 +312,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       resetData: () =>
         setState((s) => ({ ...buildSeedState(), settings: s.settings })),
     };
-  }, [db, state, hydrated, mounted, patchLocal]);
+  }, [db, state, hydrated, mounted, patchLocal, fail]);
 
   return (
     <DataContext.Provider value={value}>{children}</DataContext.Provider>

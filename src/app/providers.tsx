@@ -10,11 +10,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <AuthProvider>
       <AuthGate>
-        <DataProvider>
-          <ToastProvider>
+        <ToastProvider>
+          <DataProvider>
             <AppShell>{children}</AppShell>
-          </ToastProvider>
-        </DataProvider>
+          </DataProvider>
+        </ToastProvider>
       </AuthGate>
     </AuthProvider>
   );

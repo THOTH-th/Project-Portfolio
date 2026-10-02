@@ -16,9 +16,7 @@ const firebaseConfig = {
 };
 
 /** Firestore is used only when a real apiKey is configured. */
-export const FIREBASE_ENABLED =
-  firebaseConfig.apiKey.length > 0 &&
-  !firebaseConfig.apiKey.startsWith("YOUR_");
+export const FIREBASE_ENABLED = false;
 
 let app: FirebaseApp | undefined;
 let firestore: Firestore | undefined;
